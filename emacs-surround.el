@@ -126,17 +126,19 @@ Switch FROM surrounding STR to TO"
 (defun emacs-surround-helper (mark-fn prefix suffix)
   "Helper emacs-suround (inset|delte|line|change).
 MARK-FN PREFIX SUFFIX."
-  (unless (use-region-p) (funcall mark-fn))
-  (let* ((target-str (emacs-surround-cut-region))
-         (replaced-str (emacs-surround-replace
-                        target-str
-                        (emacs-surround-get-alist prefix)
-                        (emacs-surround-get-alist suffix))))
-    (if replaced-str
-        (progn
-          (delete-region (region-beginning) (region-end))
-          (insert replaced-str))
-      (message "not found prefix and suffix"))))
+  (let ((now (point)))
+    (unless (use-region-p) (funcall mark-fn))
+    (let* ((target-str (emacs-surround-cut-region))
+           (replaced-str (emacs-surround-replace
+                          target-str
+                          (emacs-surround-get-alist prefix)
+                          (emacs-surround-get-alist suffix))))
+      (if replaced-str
+          (progn
+            (delete-region (region-beginning) (region-end))
+            (insert replaced-str)
+            (goto-char now))
+        (message "not found prefix and suffix")))))
 
 (defun emacs-surround-insert (str)
   "Insert surround word STR."
