@@ -56,7 +56,7 @@
   (skip-chars-forward emacs-surround-separator))
 
 (defun emacs-surround-same-count-p (str a b)
-  "STR Count A, B appear number in STR."
+  "Check that A and B appearing number in STR are same or not."
   (cl-flet ((count-match-str (regex)
                              (with-temp-buffer
                                (insert str)
@@ -67,7 +67,7 @@
 
 (defun emacs-surround-quote-p (type)
   "Return quote string or not.
-check TYPE."
+TYPE is `forward` or `backward`."
   (let ((min (point-at-bol))
         (max (point-at-eol))
         (ppoint (if (eq type 'forward) (point) (- (point) 1))))
@@ -79,7 +79,7 @@ check TYPE."
     (iter 0 ppoint)))
 
 (defun emacs-surround-mark-between (prefix &optional suffix)
-  "Wrap str with PREFIX and SUFFIX."
+  "Region buffer with PREFIX and SUFFIX."
   (cl-flet ((search-prefix () (search-backward prefix (point-min) nil 1))
             (search-suffix () (search-forward (or suffix prefix) (point-max) nil 1)))
     (if (search-prefix)
@@ -106,9 +106,8 @@ check TYPE."
   (concat prefix str (or suffix prefix)))
 
 (defun emacs-surround-replace (str from to)
-  "STR FROM TO.
-(FROM)STR(FROM) -> (TO)STR(TO).
-Switch FROM surrounding STR to TO"
+  "Replace FROM to TO in STR.
+\\(FROM\\)STR\\(FROM\\) -> \\(TO\\)STR\\(TO\\)."
   (let* ((f-prefix (car from)) (f-suffix (cdr from))
          (t-prefix (car to)) (t-suffix (cdr to))
          (regx (format "^%s\\(\\(.\\|\n\\)*\\)%s$" f-prefix f-suffix)))
@@ -121,8 +120,9 @@ Switch FROM surrounding STR to TO"
   (buffer-substring (region-beginning) (region-end)))
 
 (defun emacs-surround-helper (mark-fn prefix suffix)
-  "Helper emacs-suround (inset|delte|line|change).
-MARK-FN PREFIX SUFFIX."
+  "Helper function emacs-surround (inset|delte|line|change).
+MARK-FN is regioning function.
+PREFIX and SUFFIX are replace string."
   (let ((now (point)))
     (unless (use-region-p) (funcall mark-fn))
     (let* ((target-str (emacs-surround-cut-region))
@@ -138,11 +138,11 @@ MARK-FN PREFIX SUFFIX."
         (message "not found prefix and suffix")))))
 
 (defun emacs-surround-insert (str)
-  "Insert surround word STR."
+  "Insert surround string, STR."
   (emacs-surround-helper 'emacs-surround-mark-region-sep "" str))
 
 (defun emacs-surround-delete (str)
-  "Delete surround word which is STR."
+  "Delete surround string, STR."
   (let ((s (emacs-surround-get-alist str)))
     (emacs-surround-helper (lambda () (emacs-surround-mark-between (car s) (cdr s)))
                            str "")))
@@ -152,7 +152,7 @@ MARK-FN PREFIX SUFFIX."
   (emacs-surround-helper 'emacs-surround-mark-region-line "" str))
 
 (defun emacs-surround-change (to end)
-  "Change suround string TO into END."
+  "Change surround string TO into END."
   (let ((s (emacs-surround-get-alist to)))
     (emacs-surround-helper (lambda () (emacs-surround-mark-between (car s) (cdr s)))
                            to end)))
