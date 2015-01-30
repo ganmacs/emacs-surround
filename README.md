@@ -1,60 +1,82 @@
 # emacs-surround
 
-Emacs version of the vim.surround.
-
-## Installation
-
-Use `cask` or `el-get` or clone form `https://github.com/ganmacs/emacs-surround.git`
-
-```
-(require 'emacs-surround)
-(global-set-key (kbd "C-q") 'emacs-surround)
-```
+emacs-surround is like [vim.surround](https://github.com/tpope/vim-surround).
+This plugins provides easily change, delete and insert such surrounding in pairs.
 
 ## Example
 
 ### change
 
-Press `C-t "'`
+Press `C-q "'`
 
-```
+```rb
 "Hello| world!"
 ```
 
-change it to
+Change it to
 
-```
+```rb
 'Hello world!'
 ```
 
 ### insert
 
-Press `C-t i"` or `C-t " <return>`
+Press `C-q i"` or `C-q " <return>`
 
-```
+```rb
 Hel|lo
 ```
 
-change it to
+Change it to
 
-```
+```rb
 "Hello"
 ```
 
 ### delete
 
-Press `C-t d"`
+Press `C-q d"`
 
-```
-"Hello \"world\""
-```
-
-change it to
-
-```
-Hel|lo \"world\"
+```rb
+"He|llo \"world\""
 ```
 
-## TODO
+Change it to
 
-* 場所を覚えておく
+```rb
+Hello \"world\"
+```
+
+## Installation and Settings
+
+Use `cask` or `el-get` or `clone` form `https://github.com/ganmacs/emacs-surround.git`
+
+
+And add this script your `.init.el`
+
+```lisp
+(require 'emacs-surround)
+(global-set-key (kbd "C-q") 'emacs-surround)
+```
+
+## Customize
+
+You can use custimze pair.
+
+For Example Add this line to your `.init.el`
+
+```lisp
+(add-to-list 'emacs-surround-alist '("}" . ("{ " . " }")))
+```
+
+Now press `C-q {}`
+
+```rb
+[1, 2, 3].each {p |1+i}
+```
+
+Change it  to
+
+```rb
+[1, 2, 3].each { p 1+i }
+```
