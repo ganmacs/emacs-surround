@@ -72,7 +72,7 @@ TYPE is `forward` or `backward`."
         (max (point-at-eol))
         (ppoint (if (eq type 'forward) (point) (- (point) 1))))
     (defun iter (i p)
-      (if (<= min p max)
+      (if (and (<= min p) (<= p max))
           (if (= (char-before p) 92) ; quote
               (iter (+ i 1) (- p 1))
             (= (mod i 2) 1))))
