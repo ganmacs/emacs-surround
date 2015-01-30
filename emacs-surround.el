@@ -83,8 +83,8 @@ check TYPE."
 
 (defun emacs-surround-mark-between (prefix &optional suffix)
   "Wrap str with PREFIX and SUFFIX."
-  (cl-flet ((search-prefix () (search-backward prefix (point-at-bol) nil 1))
-            (search-suffix () (search-forward (or suffix prefix) (point-at-eol) nil 1)))
+  (cl-flet ((search-prefix () (search-backward prefix (point-min) nil 1))
+            (search-suffix () (search-forward (or suffix prefix) (point-max) nil 1)))
     (if (search-prefix)
         (progn
           (while (emacs-surround-quote-p 'forward) (search-prefix))
@@ -114,7 +114,7 @@ check TYPE."
 Switch FROM surrounding STR to TO"
   (let* ((f-prefix (car from)) (f-suffix (cdr from))
          (t-prefix (car to)) (t-suffix (cdr to))
-         (regx (format "^%s\\(.*\\)%s$" f-prefix f-suffix)))
+         (regx (format "^%s\\(\\(.\\|\n\\)*\\)%s$" f-prefix f-suffix)))
     (if (string-match regx str)
         (let ((match (match-string 1 str)))
           (emacs-surround-wrap match t-prefix t-suffix)))))
