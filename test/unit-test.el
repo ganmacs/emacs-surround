@@ -149,4 +149,17 @@
                 (buffer-string))))
     (should (string= got "(Hello \\\"World\\\"!)"))))
 
+;; customize
+
+(ert-deftest test-eamcs-surround-change-for-customize ()
+  "emacs-surround-change for customize"
+  (let* ((emacs-surround-alist (cons '("b" . ("{ " . " }")) emacs-surround-alist))
+         (input "{Hello world}")
+         (got (with-temp-buffer
+                (insert input)
+                (goto-char (+ 1 (point-min)))
+                (emacs-surround-change "{" "b")
+                (buffer-string))))
+    (should (string= got "{ Hello world }"))))
+
 ;;; tests/unit-test.el ends here
