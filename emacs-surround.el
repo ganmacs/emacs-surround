@@ -80,26 +80,49 @@ TYPE is `forward` or `backward`."
             (= (mod i 2) 1))))
     (iter 0 ppoint)))
 
-(defun emacs-surround-mark-between (prefix &optional suffix)
+(defun emacs-surround-mark-between (prefix suffix)
   "Return list whch in PREFIX point and SUFFIX point."
   (cl-flet ((search-prefix () (search-backward prefix (point-min) nil 1))
-            (search-suffix () (search-forward (or suffix prefix) (point-max) nil 1)))
-    (let* ((start  (progn
-                     (search-prefix)
-                     (while (unless suffix (emacs-surround-quote-p 'backward)) (search-prefix))
-                     (point)))
-           (end  (progn
-                   (forward-char)
-                   (search-suffix)
-                   (while (if (string= prefix suffix)
-                              (emacs-surround-quote-p 'forward)
-                            (emacs-surround-same-count-p
-                             (buffer-substring start (point))
-                             prefix
-                             suffix))
-                     (search-suffix))
-                   (point))))
-      (list start end))))
+            (search-suffix () (search-forward suffix (point-max) nil 1))
+            (same-p (s e) (emacs-surround-same-count-p
+                           (buffer-substring s e) prefix suffix)))
+    (let* ((origin (point))
+           (same-surrounds-p (string= prefix suffix)))
+      (defun search-prefix-to-suffix ()
+        (goto-char origin)
+        (let* ((start (progn
+                        (search-prefix)
+                        (while (unless suffix (emacs-surround-quote-p 'backward)) (search-prefix))
+                        (point)))
+               (end (progn
+                      (forward-char)
+                      (search-suffix)
+                      (while (if same-surrounds-p
+                                 (emacs-surround-quote-p 'forward)
+                               (same-p start (point)))
+                        (search-suffix))
+                      (point))))
+          (list start end)))
+      (defun search-suffix-to-prefix ()
+        (goto-char origin)
+        (let* ((end (progn
+                      (search-suffix)
+                      (while (unless suffix (emacs-surround-quote-p 'forward)) (search-suffix))
+                      (point)))
+               (start (progn
+                        (backward-char)
+                        (search-prefix)
+                        (while (if same-surrounds-p
+                                   (emacs-surround-quote-p 'forward)
+                                 (same-p (point) end))
+                          (search-prefix))
+                        (point))))
+          (list start end)))
+      (let* ((l1 (search-suffix-to-prefix))
+             (l2 (search-prefix-to-suffix))
+             (start (min (car l1) (car l2)))
+             (end (max (cadr l1) (cadr l2))))
+        (list start end)))))
 
 (defun emacs-surround-get-alist (key)
   "Get list by emacs-surround-alit with KEY."
