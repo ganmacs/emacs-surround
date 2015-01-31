@@ -1,5 +1,7 @@
 # emacs-surround
 
+[![Build Status](https://travis-ci.org/ganmacs/emacs-surround.svg?branch=master)](https://travis-ci.org/ganmacs/emacs-surround)
+
 emacs-surround is like [vim.surround](https://github.com/tpope/vim-surround).
 This plugins provides easily change, delete and insert such surrounding in pairs.
 
