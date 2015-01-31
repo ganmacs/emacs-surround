@@ -28,17 +28,21 @@
 (require 'ert)
 (require 'emacs-surround)
 
+(defmacro test-emacs-surround (fn src expect)
+  (let ((got (cl-gensym)))
+    `(let ((got (with-temp-buffer
+                  (insert ,src)
+                  (goto-char (+ 1 (point-min)))
+                  ,fn
+                  (buffer-string))))
+       (should (string= got ,expect)))))
+
 ;; insert
 
 (ert-deftest test-eamcs-surround-insert ()
   "emacs-surround-insert WITHOUT region"
-  (let* ((input "Hello World")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (point-min))
-                (emacs-surround-insert "'")
-                (buffer-string))))
-    (should (string= got "'Hello' World"))))
+  (test-emacs-surround (emacs-surround-insert "'")
+                       "Hello World" "'Hello' World"))
 
 (ert-deftest test-eamcs-surround-insert-with-region ()
   "emacs-surround-insert WITH region"
@@ -57,109 +61,69 @@
 
 (ert-deftest test-eamcs-surround-line ()
   "emacs-surround-line"
-  (let* ((input "  Hello World")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (point-min))
-                (emacs-surround-line "(")
-                (buffer-string))))
-    (should (string= got "  (Hello World)"))))
+  (test-emacs-surround (emacs-surround-line "(")
+                       "  Hello World" "  (Hello World)"))
 
 ;; delete
 
 (ert-deftest test-eamcs-surround-delete ()
   "emacs-surround-delete WITHOUT region"
-  (let* ((input "(Hello World)")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-delete "(")
-                (buffer-string))))
-    (should (string= got "Hello World"))))
+  (test-emacs-surround (emacs-surround-delete "(")
+                       "(Hello World)" "Hello World"))
 
 (ert-deftest test-eamcs-surround-delete-with-multiple-parens ()
   "emacs-surround-delete WITH multiple parens"
-  (let* ((input "(Hello (World) !)")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-delete "(")
-                (buffer-string))))
-    (should (string= got "Hello (World) !"))))
+  (test-emacs-surround (emacs-surround-delete "(")
+                       "(Hello (World) !)" "Hello (World) !"))
 
 (ert-deftest test-eamcs-surround-delete-with-multiple-quote ()
   "emacs-surround-delete WITH multiple parens"
-  (let* ((input "\"Hello \\\"World\\\"!\"")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-delete "\"")
-                (buffer-string))))
-    (should (string= got "Hello \\\"World\\\"!"))))
+  (test-emacs-surround (emacs-surround-delete "\"")
+                       "\"Hello \\\"World\\\"!\"" "Hello \\\"World\\\"!"))
 
 (ert-deftest test-eamcs-surround-delete-with-multiple-line ()
   "emacs-surround-delete WITH multiple parens"
-  (let* ((input "(Hello [W\norld] !)")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-delete "(")
-                (buffer-string))))
-    (should (string= got "Hello [W\norld] !"))))
+  (test-emacs-surround (emacs-surround-delete "(")
+                       "(Hello [W\norld] !)" "Hello [W\norld] !"))
 
 ;; change
 
 (ert-deftest test-eamcs-surround-change ()
   "emacs-surround-change"
-  (let* ((input "'Hello World'")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-change "'" "[")
-                (buffer-string))))
-    (should (string= got "[Hello World]"))))
+  (test-emacs-surround (emacs-surround-change "'" "[")
+                       "'Hello World'" "[Hello World]"))
 
 (ert-deftest test-eamcs-surround-change-with-multiple-parens ()
   "emacs-surround-change WITH multiple parens"
-  (let* ((input "(Hello (World) !)")
+  (test-emacs-surround (emacs-surround-change "(" "'")
+                       "(Hello (World) !)" "'Hello (World) !'"))
+
+(ert-deftest test-eamcs-surround-change-with-multiple-parens2 ()
+  "emacs-surround-change WITH multiple parens"
+  (let* ((input "(Hello (World) aaaa!)")
          (got (with-temp-buffer
                 (insert input)
-                (goto-char (+ 1 (point-min)))
+                (goto-char (- (point-max) 3))
                 (emacs-surround-change "(" "'")
                 (buffer-string))))
-    (should (string= got "'Hello (World) !'"))))
+    (should (string= got "'Hello (World) aaaa!'"))))
 
 (ert-deftest test-eamcs-surround-change-with-multiple-lines ()
   "emacs-surround-change WITH multiple lines"
-  (let* ((input "(Hello \nWorld)")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-change "(" "[")
-                (buffer-string))))
-    (should (string= got "[Hello \nWorld]"))))
+  (test-emacs-surround (emacs-surround-change "(" "[")
+                       "(Hello \nWorld)" "[Hello \nWorld]"))
 
 (ert-deftest test-eamcs-surround-change-with-multiple-quote ()
   "emacs-surround-change WITH multiple parens"
-  (let* ((input "\"Hello \\\"World\\\"!\"")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-change "\"" "(")
-                (buffer-string))))
-    (should (string= got "(Hello \\\"World\\\"!)"))))
+  (test-emacs-surround (emacs-surround-change "\"" "(")
+                       "\"Hello \\\"World\\\"!\"" "(Hello \\\"World\\\"!)"))
 
 ;; customize
 
 (ert-deftest test-eamcs-surround-change-for-customize ()
   "emacs-surround-change for customize"
-  (let* ((emacs-surround-alist (cons '("b" . ("{ " . " }")) emacs-surround-alist))
-         (input "{Hello world}")
-         (got (with-temp-buffer
-                (insert input)
-                (goto-char (+ 1 (point-min)))
-                (emacs-surround-change "{" "b")
-                (buffer-string))))
-    (should (string= got "{ Hello world }"))))
+  (let ((emacs-surround-alist (cons '("b" . ("{ " . " }")) emacs-surround-alist)))
+    (test-emacs-surround (emacs-surround-change "{" "b")
+                         "{Hello world}" "{ Hello world }")))
 
 ;;; tests/unit-test.el ends here
