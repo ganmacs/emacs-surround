@@ -44,16 +44,18 @@
 (defvar emacs-surround-separator "^\s()[]:;,=.\n{}")
 
 (defun emacs-surround-mark-region-line ()
-  "Mark region at line."
-  (back-to-indentation)
-  (set-mark (point))
-  (move-end-of-line 1))
+  "Return list which is begening point of line and  end point of line."
+  (let ((start (progn (back-to-indentation) (point)))
+        (end   (progn (goto-char (line-end-position)) (point))))
+    (list start end)))
+
+;; (push-mark (point))
 
 (defun emacs-surround-mark-region-sep ()
-  "Mark region with emacs-surround-separator."
-  (skip-chars-backward emacs-surround-separator)
-  (set-mark (point))
-  (skip-chars-forward emacs-surround-separator))
+  "Return list which is start of symbol and end of symbol."
+  (let ((start (progn (skip-chars-backward emacs-surround-separator) (point)))
+        (end   (progn (skip-chars-forward emacs-surround-separator) (point))))
+    (list start end)))
 
 (defun emacs-surround-same-count-p (str a b)
   "Check that A and B appearing number in STR are same or not."
@@ -70,31 +72,34 @@
 TYPE is `forward` or `backward`."
   (let ((min (point-at-bol))
         (max (point-at-eol))
-        (ppoint (if (eq type 'forward) (point) (- (point) 1))))
+        (ppoint (if (eq type 'backward) (point) (- (point) 1))))
     (defun iter (i p)
       (if (and (<= min p) (<= p max))
-          (if (= (char-before p) 92) ; quote
+          (if (= (char-before p) 92) ; backquote
               (iter (+ i 1) (- p 1))
             (= (mod i 2) 1))))
     (iter 0 ppoint)))
 
 (defun emacs-surround-mark-between (prefix &optional suffix)
-  "Region buffer with PREFIX and SUFFIX."
+  "Return list whch in PREFIX point and SUFFIX point."
   (cl-flet ((search-prefix () (search-backward prefix (point-min) nil 1))
             (search-suffix () (search-forward (or suffix prefix) (point-max) nil 1)))
-    (if (search-prefix)
-        (progn
-          (while (emacs-surround-quote-p 'forward) (search-prefix))
-          (set-mark (point))
-          (forward-char)
-          (search-suffix)
-          (while (if (string= prefix suffix)
-                     (emacs-surround-quote-p 'backward)
-                   (emacs-surround-same-count-p
-                    (buffer-substring (region-beginning) (region-end))
-                    prefix
-                    suffix))
-            (search-suffix))))))
+    (let* ((start  (progn
+                     (search-prefix)
+                     (while (unless suffix (emacs-surround-quote-p 'backward)) (search-prefix))
+                     (point)))
+           (end  (progn
+                   (forward-char)
+                   (search-suffix)
+                   (while (if (string= prefix suffix)
+                              (emacs-surround-quote-p 'forward)
+                            (emacs-surround-same-count-p
+                             (buffer-substring start (point))
+                             prefix
+                             suffix))
+                     (search-suffix))
+                   (point))))
+      (list start end))))
 
 (defun emacs-surround-get-alist (key)
   "Get list by emacs-surround-alit with KEY."
@@ -115,24 +120,30 @@ TYPE is `forward` or `backward`."
         (let ((match (match-string 1 str)))
           (emacs-surround-wrap match t-prefix t-suffix)))))
 
-(defun emacs-surround-cut-region ()
-  "Cut region at point."
-  (buffer-substring (region-beginning) (region-end)))
+(defun emacs-surround-cut-region (region)
+  "Cut region REGION car to REGION cdar."
+  (apply 'buffer-substring region))
+
+(defun emacs-surround-region-list (fn)
+  "If 'mark-active then region list else call FN and return list."
+  (if (use-region-p)
+      (list (region-beginning) (region-end))
+    (funcall fn)))
 
 (defun emacs-surround-helper (mark-fn prefix suffix)
   "Helper function emacs-surround (inset|delte|line|change).
 MARK-FN is regioning function.
 PREFIX and SUFFIX are replace string."
   (let ((now (point)))
-    (unless (use-region-p) (funcall mark-fn))
-    (let* ((target-str (emacs-surround-cut-region))
+    (let* ((region (emacs-surround-region-list mark-fn))
+           (target-str (emacs-surround-cut-region region))
            (replaced-str (emacs-surround-replace
                           target-str
                           (emacs-surround-get-alist prefix)
                           (emacs-surround-get-alist suffix))))
       (if replaced-str
           (progn
-            (delete-region (region-beginning) (region-end))
+            (apply 'delete-region region)
             (insert replaced-str)
             (goto-char now))
         (message "not found prefix and suffix")))))
